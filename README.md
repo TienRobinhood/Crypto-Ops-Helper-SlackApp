@@ -1,10 +1,10 @@
 # README for Running and Managing the Node.js Slack Application
 
-**Date Created:** `<Date>`
+**Date Created:** `June 12, 2024`
 
-**Team:** `<Team>`
+**Team:** `Crypto Settlements`
 
-**Owner:** `<Owner name>`
+**Owner:** `Tien Nguyen`
 
 ---
 
@@ -81,7 +81,6 @@ The purpose of this README is to ensure that the Node.js Slack application runs 
 
 ## Appendix/Links/Associated Documents
 
-- **Repository URL:** `<repository-url>`
 - **Google Sheets API Documentation:** [Google Sheets API](https://developers.google.com/sheets/api)
 - **Slack API Documentation:** [Slack API](https://api.slack.com/)
 - **Node.js Documentation:** [Node.js](https://nodejs.org/)
