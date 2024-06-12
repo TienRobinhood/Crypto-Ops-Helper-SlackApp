@@ -1,0 +1,6 @@
+# Ignore Google Cloud Service Account credentials
+Slack/Google/credentials.json
+
+# Ignore environment variables file
+.env
+node_modules

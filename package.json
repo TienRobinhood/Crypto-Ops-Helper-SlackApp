@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@slack/bolt": "^3.18.0",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^140.0.0"
+  },
+  "type": "module"
+}
