@@ -85,3 +85,5 @@ The purpose of this README is to ensure that the Node.js Slack application runs 
 - **Slack API Documentation:** [Slack API](https://api.slack.com/)
 - **Node.js Documentation:** [Node.js](https://nodejs.org/)
 # Slack-App---Robinhood
+# Slack-App---Robinhood
+# MM-EOD-Slack-Bot
