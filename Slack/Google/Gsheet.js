@@ -201,9 +201,6 @@ async function insertTransactions(transactions, userLinksString, custodianValue,
             ];
         }
 
-        // Log the requests for verification
-        console.log('Prepared requests:', JSON.stringify(transactionRequests, null, 2));
-
         const copyPropertiesRequest = {
             copyPaste: {
                 source: {
@@ -239,7 +236,7 @@ async function insertTransactions(transactions, userLinksString, custodianValue,
             requestBody: { requests }
         });
 
-        console.log('Transactions inserted successfully:', JSON.stringify(response.data, null, 2));
+        console.log('Google Sheet has been updated successfully.');
     } catch (error) {
         console.error(`There was an error inserting the transactions!\n${error.stack}`);
         throw new Error(`There was an error inserting the transactions!\n${error.stack}`);

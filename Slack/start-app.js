@@ -42,7 +42,6 @@ async function getMessages() {
     });
 
     let messages = data.messages; // Extract messages from the response data
-    console.log(`Fetched ${messages.length} messages from the channel.`); // Log the number of messages fetched
     let eod_message = undefined; // Initialize a variable to store the EOD message
 
     // Loop through the messages to find the relevant EOD message
@@ -98,9 +97,6 @@ async function processEODMessage(fields) {
 
     const transactions = Array.from(transactionsMap.values()); // Convert the map values to an array
 
-    // Debug statement to print all transactions
-    console.log('Transactions:', JSON.stringify(transactions, null, 2));
-
     const approversField = fields.find(field => field.title === 'Approvers'); // Find the approvers field
     const custodianField = fields.find(field => field.title === 'Custodian'); // Find the custodian field
 
@@ -108,9 +104,6 @@ async function processEODMessage(fields) {
     const userLinksString = approversField.value.replace(/<@(U\w+)>/g, (match, userId) => {
         return SETTLEMENTS_USERS[userId] ? `@${SETTLEMENTS_USERS[userId]}` : match;
     });
-
-    // Debugging line for userLinksString
-    console.log('Generated userLinksString:', userLinksString);
 
     // Send transactions to Google Sheets
     await insertTransactions(transactions, userLinksString, custodianField.value, 'Custodian');
@@ -133,26 +126,6 @@ function convertUserIDsToNames(fields) {
     });
 }
 
-
-// /**
-//  * Convert user IDs to user names with hyperlinks in fields.
-//  * @param {Array} fields - The fields of the EOD message.
-//  * @returns {Array} The fields with user IDs converted to user names with hyperlinks.
-//  */
-// function convertUserIDsToNames(fields) {
-//     return fields.map(field => {
-//         return {
-//             ...field, // Spread the original field properties
-//             // Replace user IDs with hyperlinks to user profiles in the field value
-//             value: field.value.replace(/<@(U\w+)>/g, (match, userId) => {
-//                 const userName = SETTLEMENTS_USERS[userId];
-//                 return userName ? `=HYPERLINK("https://slack.com/app_redirect?channel=${userId}", "@${userName}")` : match;
-//             })
-//         };
-//     });
-// } DOESN'T WORK FOR SAME REASON AS HAVING MULTIPLE HYPERLINKS IN ONE
-
-
 // Command handler for the /update_eod_settlements Slack command
 app.command('/update_eod_settlements', async ({ command, ack, respond }) => {
     ack(); // Acknowledge the command request
@@ -170,9 +143,6 @@ app.command('/update_eod_settlements', async ({ command, ack, respond }) => {
         let eodMessage = await getMessages(); // Fetch messages from the channel
         if (eodMessage) {
             const attachment = eodMessage.attachments[0]; // Get the attachment from the EOD message
-            console.log('Found EOD message:');
-            console.log('Author:', attachment.author_name); // Log the author of the message
-            console.log('Fields:', attachment.fields); // Log the fields of the message
 
             await respond({
                 response_type: 'ephemeral',
