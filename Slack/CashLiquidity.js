@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import pkg from '@slack/bolt';
 import axios from 'axios';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
-import { insertPDFData } from './Google/CashLiquidityGsheet.js'; // Import the Google Sheets function
+import { copyAndModifySheet } from './Google/CashLiquidityGsheet.js'; // Import the correct function
 
 const { App } = pkg;
 
@@ -95,8 +95,11 @@ async function processPDFBuffer(fileUrl, fileName) {
             // Break down the relevantText into manageable parts
             const lines = relevantText.split('\n').filter(line => line.trim() !== '');
 
-            // Insert the extracted data into Google Sheets
-            await insertPDFData(lines);
+            // Define the new sheet name, e.g., based on the current date
+            const newSheetName = `Copy of ${new Date().toLocaleDateString()}`;
+
+            // Create a copy of the latest sheet, rename it, and populate it with the extracted data
+            await copyAndModifySheet(newSheetName, lines);
 
         } else {
             console.log('Stress Testing Crypto Net Buy section not found in the PDF.');
