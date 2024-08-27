@@ -72,19 +72,11 @@ The purpose of this README is to ensure that the Node.js Slack application runs 
 
 ### 3. Handling Slack Commands and Google Sheets Integration
 - **Developer/IT Team:**
-  - Ensure the application code includes error handling and corrects `@` symbol logic.
-  - Key sections of `start-app.js` and `Gsheet.js` should be configured as outlined in the detailed instructions.
-
-### 4. Monitoring the Application (Optional)
-- **Developer/IT Team:**
-  - Set up a lightweight service to monitor the main application and notify Slack if the application is down.
+  - Run `node start-app.js` if needing to run `/update_eod_settlements` for Crypto EOD Money Movement
+  - Run `node CashLiquidity.js` if needing to run `/update_stress_test_data` or `/update_stress_test_data_2_days` for RHC Cash utilization.
 
 ## Appendix/Links/Associated Documents
 
 - **Google Sheets API Documentation:** [Google Sheets API](https://developers.google.com/sheets/api)
 - **Slack API Documentation:** [Slack API](https://api.slack.com/)
 - **Node.js Documentation:** [Node.js](https://nodejs.org/)
-# Slack-App---Robinhood
-# Slack-App---Robinhood
-# MM-EOD-Slack-Bot
-# MM-EOD-Slack-Bot
