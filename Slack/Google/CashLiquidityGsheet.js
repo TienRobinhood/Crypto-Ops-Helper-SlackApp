@@ -1,35 +1,48 @@
+// Import the Google APIs client library for Node.js
 import { google } from 'googleapis';
+// Import the dotenv library to load environment variables from a .env file
 import dotenv from 'dotenv';
 
+// Load environment variables from the .env file
 dotenv.config();
 
+// Define the scope for accessing Google Sheets
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+// Specify the ID of the Google Spreadsheet you want to interact with
 const SPREADSHEET_ID = "1lt4f0OB5sqE5aVLEM0gSsgf5Iy3tx2t5xVuxZRP-a6o"; // Replace with your actual spreadsheet ID
 
+// Initialize GoogleAuth to authenticate using a service account
 const auth = new google.auth.GoogleAuth({
     keyFile: 'Google/credentials.json', // Path to your service account JSON file
-    scopes: SCOPES,
+    scopes: SCOPES, // Scopes define the API access level
 });
 
+// Create a Sheets API client using the authenticated credentials
 const sheets = google.sheets({ version: 'v4', auth });
 
+// Function to get the ID of the first sheet in the spreadsheet
 async function getFirstSheetId() {
+    // Fetch the spreadsheet's metadata, including sheet information
     const spreadsheet = await sheets.spreadsheets.get({
         spreadsheetId: SPREADSHEET_ID,
     });
 
-    const firstSheet = spreadsheet.data.sheets[0]; // Get the first sheet
+    // Extract the first sheet from the metadata
+    const firstSheet = spreadsheet.data.sheets[0];
+    // If no sheets are found, throw an error
     if (!firstSheet) throw new Error('No sheets found in the spreadsheet');
 
+    // Return the ID of the first sheet
     return firstSheet.properties.sheetId;
 }
 
+// Main function to copy the first sheet, modify it, and insert data
 export async function copyAndModifySheet(newSheetName, lines) {
     try {
         // Step 1: Get the first sheet ID
         const firstSheetId = await getFirstSheetId();
 
-        // Step 2: Create a copy of the first sheet
+        // Step 2: Create a copy of the first sheet within the same spreadsheet
         const copyResponse = await sheets.spreadsheets.sheets.copyTo({
             spreadsheetId: SPREADSHEET_ID,
             sheetId: firstSheetId, // ID of the first sheet to copy
@@ -38,10 +51,11 @@ export async function copyAndModifySheet(newSheetName, lines) {
             }
         });
 
+        // Extract the ID of the new sheet that was created
         const newSheetId = copyResponse.data.sheetId;
         console.log(`New sheet created with ID: ${newSheetId}`);
 
-        // Step 3: Rename the new sheet
+        // Step 3: Rename the new sheet and move it to the first position
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             requestBody: {
@@ -50,7 +64,7 @@ export async function copyAndModifySheet(newSheetName, lines) {
                         updateSheetProperties: {
                             properties: {
                                 sheetId: newSheetId,
-                                title: newSheetName,
+                                title: newSheetName, // New name for the sheet
                                 index: 0 // Move the new sheet to the first position (leftmost)
                             },
                             fields: 'title,index'
@@ -61,10 +75,10 @@ export async function copyAndModifySheet(newSheetName, lines) {
         });
         console.log(`Sheet renamed and moved to the first position: ${newSheetName}`);
 
-        // Step 4: Parse and format the lines to extract the specific values
+        // Step 4: Parse and format the lines to extract specific values from the data
         const extractedData = extractData(lines);
 
-        // Step 5: Define the mapping of values to cells
+        // Step 5: Define the mapping of extracted values to specific cells in the new sheet
         const cellMapping = [
             { value: extractedData[2][4], row: 3, col: 13 }, // N4
             { value: extractedData[3][4], row: 4, col: 13 }, // N5
@@ -83,14 +97,17 @@ export async function copyAndModifySheet(newSheetName, lines) {
             { value: extractedData[4][7], row: 5, col: 17 }, // R6
         ];
 
+        // Step 6: Create the update requests for each cell based on the extracted data
         const requests = cellMapping.map(({ value, row, col }) => {
-            // Ensure the value is defined and replace 'M' for numeric values
+            // Ensure the value is defined and handle different types of values (strings vs numbers)
             if (value !== undefined) {
+                // If the value contains 'M', remove it and treat it as millions
                 const parsedValue = parseFloat(value.replace(/M/g, '').trim());
                 const userEnteredValue = isNaN(parsedValue)
                     ? { stringValue: value } // Insert as string if not a number
                     : { numberValue: parsedValue * 1000000 }; // Insert as number if it is numeric
 
+                // Return an update request for the cell
                 return {
                     updateCells: {
                         rows: [{
@@ -105,11 +122,13 @@ export async function copyAndModifySheet(newSheetName, lines) {
                     }
                 };
             } else {
+                // Log an error if the value is undefined for the specified cell
                 console.error(`Undefined value found for row ${row + 1}, col ${col + 1}`);
                 return null;
             }
-        }).filter(request => request !== null); // Remove any null requests
+        }).filter(request => request !== null); // Filter out any null requests
 
+        // Step 7: Execute the batch update to insert the data into the new sheet
         let response = await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             requestBody: { requests }
@@ -117,11 +136,12 @@ export async function copyAndModifySheet(newSheetName, lines) {
 
         console.log('PDF data inserted successfully into the new sheet:', JSON.stringify(response.data, null, 2));
     } catch (error) {
+        // Log any errors encountered during the process
         console.error('Error processing the sheet:', error);
     }
 }
 
-// Helper function to extract and format the necessary data from the PDF text
+// Helper function to extract and format the necessary data from the input lines
 function extractData(lines) {
     return lines.map(line => line.split(/\s+/).map(value => value.trim()));
 }

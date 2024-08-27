@@ -182,6 +182,13 @@ app.command('/update_stress_test_data', async ({ command, ack, respond }) => {
     ack(); // Acknowledge the command request
 
     try {
+
+        await respond({
+            response_type: 'ephemeral',
+            text: 'Stress test command for 1 day is running...'
+        });
+
+
         // Run the logic to scan the channel for PDFs and update the Google Sheet
         await scanChannelForPDF();
 
@@ -205,6 +212,12 @@ app.command('/update_stress_test_data_2_days', async ({ command, ack, respond })
     ack(); // Acknowledge the command request
 
     try {
+        // Respond to Slack channel that command is running.
+        await respond({
+            response_type: 'ephemeral',
+            text: 'Stress test command for 2 days is running...'
+        });
+
         // Run the logic to scan the channel for PDFs and update two Google Sheets
         await scanChannelForPDFTwoDays();
 
