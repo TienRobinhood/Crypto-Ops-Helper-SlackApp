@@ -2,7 +2,7 @@
 
 **Date Updated:** `August 27, 2024`
 
-**Team:** `Crypto Settlements`
+**Team:** `Crypto Operations`
 
 **Owner:** `Tien Nguyen`
 
