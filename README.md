@@ -1,6 +1,6 @@
 # README for Running and Managing the Node.js Slack Application
 
-**Date Created:** `June 12, 2024`
+**Date Updated:** `August 27, 2024`
 
 **Team:** `Crypto Settlements`
 
