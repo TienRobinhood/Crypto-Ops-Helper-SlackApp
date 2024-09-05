@@ -144,7 +144,27 @@ export async function copyAndModifySheet(newSheetName, lines) {
             }
         }).filter(request => request !== null); // Filter out any null requests
 
-        // Step 8: Execute the batch update to insert the data into the new sheet 
+
+        // Step 8: Insert the current date into cell B3 as a date value
+        const currentDate = new Date();
+        const serialDate = Math.floor((currentDate - new Date(Date.UTC(1899, 11, 30))) / (24 * 60 * 60 * 1000)); // Excel serial date calculation
+
+        requests.push({
+            updateCells: {
+                rows: [{
+                    values: [{
+                        userEnteredValue: { numberValue: serialDate }
+                    }]
+                }],
+                fields: 'userEnteredValue',
+                start: {
+                    sheetId: newSheetId,
+                    rowIndex: 2, // B3 (Row index 2 because it's 0-based)
+                    columnIndex: 1 // B3 (Column index 1 because it's 0-based)
+                }
+            }
+        });
+        // Step 9: Execute the batch update to insert the data into the new sheet 
         let response = await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             requestBody: { requests }

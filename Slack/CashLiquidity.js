@@ -109,7 +109,7 @@ async function scanChannelForPDFTwoDays() {
 
 
 // Function to process the PDF file and create one Google Sheet
-async function processPDFBuffer(fileUrl, fileName) {
+async function processPDFBuffer(fileUrl, fileName, respond) {
     try {
         console.log(`Attempting to fetch file from URL: ${fileUrl}`);
 
@@ -134,29 +134,42 @@ async function processPDFBuffer(fileUrl, fileName) {
 
         const data = await pdfParse(dataBuffer);
 
-        // Extract the text after "Stress Testing Crypto Net Buy"
         const stressTestingIndex = data.text.indexOf("Stress Testing Crypto Net Buy");
-        if (stressTestingIndex !== -1) {
-            const relevantText = data.text.slice(stressTestingIndex);
-            console.log('Extracted relevant text:');
-            console.log(relevantText);
+        if (stressTestingIndex === -1) {
+            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
+        }
 
-            // Break down the relevantText into manageable parts
-            const lines = relevantText.split('\n').filter(line => line.trim() !== '');
+        const relevantText = data.text.slice(stressTestingIndex);
+        console.log('Extracted relevant text:');
+        console.log(relevantText);
 
-            // Custom date formatting to MM.DD.YYYY
-            const date = new Date();
-            const formattedDate = `${date.getMonth() + 1}.${date.getDate()}.${date.getFullYear()}`;
+        const lines = relevantText.split('\n').filter(line => line.trim() !== '');
 
-            // Define the new sheet name, e.g., based on the current date
-            const newSheetName = `${formattedDate} - 1 day`;
+        const date = new Date();
+        const formattedDate = `${date.getMonth() + 1}.${date.getDate()}.${date.getFullYear()}`;
 
-            // Create a copy of the latest sheet, rename it, and populate it with the extracted data
+        const newSheetName = `${formattedDate} - 1 day`;
+
+        try {
+            // Attempt to create the sheet
             await copyAndModifySheet(newSheetName, lines);
 
-        } else {
-            console.log('Stress Testing Crypto Net Buy section not found in the PDF.');
-            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
+            // Inform the user if the sheet was created successfully
+            await respond({
+                response_type: 'ephemeral',
+                text: `Stress test data has been updated in the Google Sheet "${newSheetName}".`
+            });
+        } catch (error) {
+            // Handle the specific case where the sheet already exists
+            if (error.message.includes('already exists')) {
+                console.log(`The sheet "${newSheetName}" already exists.`);
+                await respond({
+                    response_type: 'ephemeral',
+                    text: `The sheet "${newSheetName}" already exists. No new sheet was created.`
+                });
+            } else {
+                throw error; // Re-throw other errors
+            }
         }
 
     } catch (error) {
@@ -165,8 +178,9 @@ async function processPDFBuffer(fileUrl, fileName) {
     }
 }
 
+
 // Function to process the PDF file and create two Google Sheets
-async function processPDFBufferTwoDays(fileUrl, fileName) {
+async function processPDFBufferTwoDays(fileUrl, fileName, respond) {
     try {
         console.log(`Attempting to fetch file from URL: ${fileUrl}`);
 
@@ -191,35 +205,73 @@ async function processPDFBufferTwoDays(fileUrl, fileName) {
 
         const data = await pdfParse(dataBuffer);
 
-        // Extract the text after "Stress Testing Crypto Net Buy"
         const stressTestingIndex = data.text.indexOf("Stress Testing Crypto Net Buy");
-        if (stressTestingIndex !== -1) {
-            const relevantText = data.text.slice(stressTestingIndex);
-            console.log('Extracted relevant text:');
-            console.log(relevantText);
+        if (stressTestingIndex === -1) {
+            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
+        }
 
-            // Break down the relevantText into manageable parts
-            const lines = relevantText.split('\n').filter(line => line.trim() !== '');
+        const relevantText = data.text.slice(stressTestingIndex);
+        console.log('Extracted relevant text:');
+        console.log(relevantText);
 
-            // Custom date formatting to MM.DD.YYYY
-            const date = new Date();
-            const formattedDate = `${date.getMonth() + 1}.${date.getDate()}.${date.getFullYear()}`;
+        const lines = relevantText.split('\n').filter(line => line.trim() !== '');
 
-            // Define the new sheet names
-            const newSheetName1 = `${formattedDate} - 1 day`;
-            const newSheetName2 = `${formattedDate} - 2 day`;
+        const date = new Date();
+        const formattedDate = `${date.getMonth() + 1}.${date.getDate()}.${date.getFullYear()}`;
 
-            // Create the first sheet
+        const newSheetName1 = `${formattedDate} - 1 day`;
+        const newSheetName2 = `${formattedDate} - 2 day`;
+
+        let firstSheetCreated = false;
+        let secondSheetCreated = false;
+
+        // Try to create the first sheet
+        try {
             console.log(`Creating first sheet: ${newSheetName1}`);
             await copyAndModifySheet(newSheetName1, lines);
+            firstSheetCreated = true;
+        } catch (error) {
+            if (error.message.includes('already exists')) {
+                console.log(`The sheet "${newSheetName1}" already exists. No new sheet was created`);
+            } else {
+                throw error; // Re-throw if it's a different error
+            }
+        }
 
-            // Create the second sheet
+        // Try to create the second sheet
+        try {
             console.log(`Creating second sheet: ${newSheetName2}`);
             await copyAndModifySheet(newSheetName2, lines);
+            secondSheetCreated = true;
+        } catch (error) {
+            if (error.message.includes('already exists')) {
+                console.log(`The sheet "${newSheetName2}" already exists. No new sheet was created`);
+            } else {
+                throw error; // Re-throw if it's a different error
+            }
+        }
 
+        // Respond with appropriate message based on what was created
+        if (firstSheetCreated && secondSheetCreated) {
+            await respond({
+                response_type: 'ephemeral',
+                text: `Stress test data has been updated in both Google Sheets: "${newSheetName1}" and "${newSheetName2}".`
+            });
+        } else if (firstSheetCreated) {
+            await respond({
+                response_type: 'ephemeral',
+                text: `Stress test data has been updated in "${newSheetName1}". The sheet "${newSheetName2}" already exists.`
+            });
+        } else if (secondSheetCreated) {
+            await respond({
+                response_type: 'ephemeral',
+                text: `The sheet "${newSheetName1}" already exists. Stress test data has been updated in "${newSheetName2}".`
+            });
         } else {
-            console.log('Stress Testing Crypto Net Buy section not found in the PDF.');
-            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
+            await respond({
+                response_type: 'ephemeral',
+                text: `Both sheets "${newSheetName1}" and "${newSheetName2}" already exist. No new sheet was created`
+            });
         }
 
     } catch (error) {
@@ -227,6 +279,7 @@ async function processPDFBufferTwoDays(fileUrl, fileName) {
         throw error; // Re-throw the error to be handled by the caller
     }
 }
+
 
 
 
@@ -242,17 +295,12 @@ app.command('/update_stress_test_data', async ({ command, ack, respond }) => {
 
         const pdfFile = await scanChannelForPDF();
         if (pdfFile) {
-            await processPDFBuffer(pdfFile.url_private, pdfFile.name);
+            await processPDFBuffer(pdfFile.url_private, pdfFile.name, respond);
 
-            // Only send this message if the above operations succeed
-            await respond({
-                response_type: 'ephemeral',
-                text: 'Stress test data has been updated in the Google Sheet.'
-            });
         } else {
             await respond({
                 response_type: 'ephemeral',
-                text: 'This command has been ran for today already! Check spreadsheet',
+                text: 'No PDF file found! Check if the command has been run for today already.',
             });
         }
     } catch (error) {
@@ -266,29 +314,28 @@ app.command('/update_stress_test_data', async ({ command, ack, respond }) => {
 
 
 
-// Command listener for /update_stress_test_data
+
+
+
+
+
+// Command listener for /update_stress_test_data_2_days
 app.command('/update_stress_test_data_2_days', async ({ command, ack, respond }) => {
     ack(); // Acknowledge the command request
 
     try {
         await respond({
             response_type: 'ephemeral',
-            text: 'Stress test command for 2 day is running...'
+            text: 'Stress test command for 2 days is running...'
         });
 
         const pdfFile = await scanChannelForPDFTwoDays();
         if (pdfFile) {
-            await processPDFBufferTwoDays(pdfFile.url_private, pdfFile.name);
-
-            // Only send this message if the above operations succeed
-            await respond({
-                response_type: 'ephemeral',
-                text: 'Stress test data has been updated in 2 Google Sheets.'
-            });
+            await processPDFBufferTwoDays(pdfFile.url_private, pdfFile.name, respond);
         } else {
             await respond({
                 response_type: 'ephemeral',
-                text: 'This command has been ran for today already! Check spreadsheet',
+                text: 'No PDF file found! Check if the command has been ran for today already.',
             });
         }
     } catch (error) {
@@ -299,6 +346,7 @@ app.command('/update_stress_test_data_2_days', async ({ command, ack, respond })
         });
     }
 });
+
 
 
 
