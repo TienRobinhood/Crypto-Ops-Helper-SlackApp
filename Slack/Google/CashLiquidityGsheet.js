@@ -39,10 +39,26 @@ async function getFirstSheetId() {
 // Main function to copy the first sheet, modify it, and insert data
 export async function copyAndModifySheet(newSheetName, lines) {
     try {
-        // Step 1: Get the first sheet ID
+        // Step 1: Check if a sheet with the newSheetName already exists
+        const spreadsheet = await sheets.spreadsheets.get({
+            spreadsheetId: SPREADSHEET_ID,
+            fields: 'sheets.properties.title,sheets.properties.sheetId',
+        });
+
+        const existingSheet = spreadsheet.data.sheets.find(
+            sheet => sheet.properties.title === newSheetName
+        );
+
+        if (existingSheet) {
+            const customErrorMessage = `The sheet "${newSheetName}" already exists.`;
+            console.error(customErrorMessage);
+            throw new Error(customErrorMessage);
+        }
+
+        // Step 2: Get the first sheet ID
         const firstSheetId = await getFirstSheetId();
 
-        // Step 2: Create a copy of the first sheet within the same spreadsheet
+        // Step 3: Create a copy of the first sheet within the same spreadsheet
         const copyResponse = await sheets.spreadsheets.sheets.copyTo({
             spreadsheetId: SPREADSHEET_ID,
             sheetId: firstSheetId, // ID of the first sheet to copy
@@ -55,7 +71,7 @@ export async function copyAndModifySheet(newSheetName, lines) {
         const newSheetId = copyResponse.data.sheetId;
         console.log(`New sheet created with ID: ${newSheetId}`);
 
-        // Step 3: Rename the new sheet and move it to the first position
+        // Step 4: Rename the new sheet and move it to the first position
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             requestBody: {
@@ -75,10 +91,10 @@ export async function copyAndModifySheet(newSheetName, lines) {
         });
         console.log(`Sheet renamed and moved to the first position: ${newSheetName}`);
 
-        // Step 4: Parse and format the lines to extract specific values from the data
+        // Step 5: Parse and format the lines to extract specific values from the data
         const extractedData = extractData(lines);
 
-        // Step 5: Define the mapping of extracted values to specific cells in the new sheet
+        // Step 6: Define the mapping of extracted values to specific cells in the new sheet
         const cellMapping = [
             { value: extractedData[2][4], row: 3, col: 13 }, // N4
             { value: extractedData[3][4], row: 4, col: 13 }, // N5
@@ -97,7 +113,7 @@ export async function copyAndModifySheet(newSheetName, lines) {
             { value: extractedData[4][7], row: 5, col: 17 }, // R6
         ];
 
-        // Step 6: Create the update requests for each cell based on the extracted data
+        // Step 7: Create the update requests for each cell based on the extracted data
         const requests = cellMapping.map(({ value, row, col }) => {
             // Ensure the value is defined and handle different types of values (strings vs numbers)
             if (value !== undefined) {
@@ -128,7 +144,7 @@ export async function copyAndModifySheet(newSheetName, lines) {
             }
         }).filter(request => request !== null); // Filter out any null requests
 
-        // Step 7: Execute the batch update to insert the data into the new sheet
+        // Step 8: Execute the batch update to insert the data into the new sheet 
         let response = await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             requestBody: { requests }
@@ -136,10 +152,11 @@ export async function copyAndModifySheet(newSheetName, lines) {
 
         console.log('PDF data inserted successfully into the new sheet:', JSON.stringify(response.data, null, 2));
     } catch (error) {
-        // Log any errors encountered during the process
         console.error('Error processing the sheet:', error);
+        throw error; // Re-throw to let the calling function handle it
     }
 }
+
 
 // Helper function to extract and format the necessary data from the input lines
 function extractData(lines) {

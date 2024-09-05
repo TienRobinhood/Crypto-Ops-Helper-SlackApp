@@ -17,7 +17,6 @@ const app = new App({
     socketMode: true,
 });
 
-// Function to scan the channel for a PDF file
 async function scanChannelForPDF() {
     try {
         let hasMore = true;
@@ -37,11 +36,10 @@ async function scanChannelForPDF() {
             for (let message of messages) {
                 if (message.files && message.files.length > 0) {
                     for (let file of message.files) {
-                        console.log('Checking file:', file.name);
+                        console.log(`Checking file: ${file.name} with mimetype: ${file.mimetype}`);
                         if (file.mimetype === 'application/pdf') {
                             console.log('PDF file detected in channel:', file.name);
-                            await processPDFBuffer(file.url_private, file.name);
-                            return; // Exit once the first PDF is found and processed
+                            return file; // Return the file object to be processed
                         } else {
                             console.log('File is not a PDF:', file.mimetype);
                         }
@@ -56,10 +54,59 @@ async function scanChannelForPDF() {
         }
 
         console.log('No PDF files found in the channel.');
+        return null; // Return null if no PDF found
     } catch (error) {
         console.error('Error fetching messages:', error);
+        throw new Error('Failed to scan the Slack channel.');
     }
 }
+
+// Function to scan the Slack channel for a PDF file (for two days)
+async function scanChannelForPDFTwoDays() {
+    try {
+        let hasMore = true;
+        let cursor;
+
+        while (hasMore) {
+            const result = await app.client.conversations.history({
+                token: process.env.BOT_TOKEN,
+                channel: TARGET_CHANNEL_ID,
+                limit: 100,
+                cursor: cursor,
+            });
+
+            const messages = result.messages;
+            console.log(`Fetched ${messages.length} messages from the channel.`);
+
+            for (let message of messages) {
+                if (message.files && message.files.length > 0) {
+                    for (let file of message.files) {
+                        console.log(`Checking file: ${file.name} with mimetype: ${file.mimetype}`);
+                        if (file.mimetype === 'application/pdf') {
+                            console.log('PDF file detected in channel:', file.name);
+                            return file; // Return the file object to be processed
+                        } else {
+                            console.log('File is not a PDF:', file.mimetype);
+                        }
+                    }
+                } else {
+                    console.log('No files attached to this message.');
+                }
+            }
+
+            hasMore = result.has_more;
+            cursor = result.response_metadata?.next_cursor;
+        }
+
+        console.log('No PDF files found in the channel.');
+        return null; // Return null if no PDF found
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        throw new Error('Failed to scan the Slack channel.');
+    }
+}
+
+
 
 // Function to process the PDF file and create one Google Sheet
 async function processPDFBuffer(fileUrl, fileName) {
@@ -109,13 +156,16 @@ async function processPDFBuffer(fileUrl, fileName) {
 
         } else {
             console.log('Stress Testing Crypto Net Buy section not found in the PDF.');
+            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
         }
 
     } catch (error) {
         console.error('Error processing PDF:', error);
+        throw error; // Re-throw the error to be handled by the caller
     }
 }
 
+// Function to process the PDF file and create two Google Sheets
 async function processPDFBufferTwoDays(fileUrl, fileName) {
     try {
         console.log(`Attempting to fetch file from URL: ${fileUrl}`);
@@ -169,35 +219,42 @@ async function processPDFBufferTwoDays(fileUrl, fileName) {
 
         } else {
             console.log('Stress Testing Crypto Net Buy section not found in the PDF.');
+            throw new Error('Stress Testing Crypto Net Buy section not found in the PDF.');
         }
 
     } catch (error) {
         console.error('Error processing PDF:', error);
+        throw error; // Re-throw the error to be handled by the caller
     }
 }
 
 
-// Add a command listener for /update_stress_test_data (single sheet)
+
+// Command listener for /update_stress_test_data
 app.command('/update_stress_test_data', async ({ command, ack, respond }) => {
     ack(); // Acknowledge the command request
 
     try {
-
         await respond({
             response_type: 'ephemeral',
             text: 'Stress test command for 1 day is running...'
         });
 
+        const pdfFile = await scanChannelForPDF();
+        if (pdfFile) {
+            await processPDFBuffer(pdfFile.url_private, pdfFile.name);
 
-        // Run the logic to scan the channel for PDFs and update the Google Sheet
-        await scanChannelForPDF();
-
-        // Respond back to the Slack channel that the operation was successful
-        await respond({
-            response_type: 'ephemeral',
-            text: 'Stress test data has been updated in the Google Sheet.'
-        });
-
+            // Only send this message if the above operations succeed
+            await respond({
+                response_type: 'ephemeral',
+                text: 'Stress test data has been updated in the Google Sheet.'
+            });
+        } else {
+            await respond({
+                response_type: 'ephemeral',
+                text: 'This command has been ran for today already! Check spreadsheet',
+            });
+        }
     } catch (error) {
         console.error('Error during the command execution:', error);
         await respond({
@@ -207,26 +264,33 @@ app.command('/update_stress_test_data', async ({ command, ack, respond }) => {
     }
 });
 
-// Add a command listener for /update_stress_test_data_2_days (two sheets)
+
+
+// Command listener for /update_stress_test_data
 app.command('/update_stress_test_data_2_days', async ({ command, ack, respond }) => {
     ack(); // Acknowledge the command request
 
     try {
-        // Respond to Slack channel that command is running.
         await respond({
             response_type: 'ephemeral',
-            text: 'Stress test command for 2 days is running...'
+            text: 'Stress test command for 2 day is running...'
         });
 
-        // Run the logic to scan the channel for PDFs and update two Google Sheets
-        await scanChannelForPDFTwoDays();
+        const pdfFile = await scanChannelForPDFTwoDays();
+        if (pdfFile) {
+            await processPDFBufferTwoDays(pdfFile.url_private, pdfFile.name);
 
-        // Respond back to the Slack channel that the operation was successful
-        await respond({
-            response_type: 'ephemeral',
-            text: 'Stress test data has been updated in two Google Sheets.'
-        });
-
+            // Only send this message if the above operations succeed
+            await respond({
+                response_type: 'ephemeral',
+                text: 'Stress test data has been updated in 2 Google Sheets.'
+            });
+        } else {
+            await respond({
+                response_type: 'ephemeral',
+                text: 'This command has been ran for today already! Check spreadsheet',
+            });
+        }
     } catch (error) {
         console.error('Error during the command execution:', error);
         await respond({
@@ -236,49 +300,6 @@ app.command('/update_stress_test_data_2_days', async ({ command, ack, respond })
     }
 });
 
-// Function to scan the channel for a PDF file and process it for two days
-async function scanChannelForPDFTwoDays() {
-    try {
-        let hasMore = true;
-        let cursor;
-
-        while (hasMore) {
-            const result = await app.client.conversations.history({
-                token: process.env.BOT_TOKEN,
-                channel: TARGET_CHANNEL_ID,
-                limit: 100,
-                cursor: cursor,
-            });
-
-            const messages = result.messages;
-            console.log(`Fetched ${messages.length} messages from the channel.`);
-
-            for (let message of messages) {
-                if (message.files && message.files.length > 0) {
-                    for (let file of message.files) {
-                        console.log('Checking file:', file.name);
-                        if (file.mimetype === 'application/pdf') {
-                            console.log('PDF file detected in channel:', file.name);
-                            await processPDFBufferTwoDays(file.url_private, file.name);
-                            return; // Exit once the first PDF is found and processed
-                        } else {
-                            console.log('File is not a PDF:', file.mimetype);
-                        }
-                    }
-                } else {
-                    console.log('No files attached to this message.');
-                }
-            }
-
-            hasMore = result.has_more;
-            cursor = result.response_metadata?.next_cursor;
-        }
-
-        console.log('No PDF files found in the channel.');
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-    }
-}
 
 
 // Start the Slack app
