@@ -3,6 +3,7 @@ import pkg from '@slack/bolt';
 import axios from 'axios';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 import { copyAndModifySheet } from './Google/CashLiquidityGsheet.js'; // Import the correct function
+import { copyAndModifySheetTwoDays } from './Google/CashLiquidityGsheet.js';
 
 const { App } = pkg;
 
@@ -228,7 +229,7 @@ async function processPDFBufferTwoDays(fileUrl, fileName, respond) {
         // Try to create the first sheet
         try {
             console.log(`Creating first sheet: ${newSheetName1}`);
-            await copyAndModifySheet(newSheetName1, lines);
+            await copyAndModifySheetTwoDays(newSheetName1, lines);
             firstSheetCreated = true;
         } catch (error) {
             if (error.message.includes('already exists')) {
@@ -241,7 +242,7 @@ async function processPDFBufferTwoDays(fileUrl, fileName, respond) {
         // Try to create the second sheet
         try {
             console.log(`Creating second sheet: ${newSheetName2}`);
-            await copyAndModifySheet(newSheetName2, lines);
+            await copyAndModifySheetTwoDays(newSheetName2, lines);
             secondSheetCreated = true;
         } catch (error) {
             if (error.message.includes('already exists')) {
